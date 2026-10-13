@@ -1,5 +1,12 @@
 {
   "name": "nelahia-mods",
   "owner": { "name": "Nelahia" },
-  "plugins": [{ "name": "usage-bars", "source": "./" }]
+  "description": "Claude Code mods by Nelahia",
+  "plugins": [
+    {
+      "name": "usage-bars",
+      "source": "./mods/usage-bars",
+      "description": "Rounded gradient bars for context, 5h and 7d usage, plus session spend"
+    }
+  ]
 }

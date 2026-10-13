@@ -1,0 +1,8 @@
+{
+  "name": "usage-bars",
+  "version": "0.1.0",
+  "description": "Rounded gradient progress bars for context, 5h and 7d usage, plus session spend, above the Claude Code Desktop prompt",
+  "author": { "name": "Nelahia" },
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

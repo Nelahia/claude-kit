@@ -1,54 +1,43 @@
-# usage-bars
+# claude-mods
 
-Des barres de progression arrondies, sobres et en dégradé, au-dessus du prompt de **Claude Code Desktop** : contexte, fenêtre de 5 h, fenêtre de 7 jours, et la dépense de la session.
+A small collection of [Claude Code](https://claude.com/claude-code) mods, installable from one marketplace.
 
-![usage-bars au-dessus du prompt de Claude Code Desktop](docs/screenshot.png)
+## Mods
 
-## Installation
-
-Dans un terminal Claude Code :
-
-```
-/plugin install usage-bars --marketplace Nelahia/claude-usage-bars
-```
-
-Réponds `y` pour ajouter la marketplace, puis choisis le scope `user`. Le mod est actif tout de suite, et dans chaque session lancée ensuite, y compris dans l'app desktop.
-
-> Le repo est privé : sur une autre machine, lance d'abord `gh auth login`.
-
-## Ce qui s'affiche
-
-| Élément | Source | Détail |
+| Mod | What it does | Preview |
 | --- | --- | --- |
-| `context` | fenêtre de contexte du modèle | Avec une clé API, les tokens s'affichent aussi (`42k/200k`). |
-| `5h` / `7d` | limites d'usage de l'abonnement | Le `↻` indique le temps avant le reset. |
-| `spend` | plafond de dépense d'une gateway | Seulement si le compte en a un. |
-| `spent` | coût de la session, comme `/cost` | Ne couvre pas le mois entier. |
+| [`usage-bars`](mods/usage-bars) | Rounded gradient bars for context, 5h and 7d usage, plus session spend, above the prompt. | <img src="mods/usage-bars/docs/screenshot.png" width="360" alt="usage-bars"> |
 
-Une barre passe du dégradé normal à une teinte chaude (terre cuite vers rouge brique) au-delà de 85 %.
+## Install
 
-## Personnalisation
-
-Tout est dans `hooks/` :
-
-- `register.tsx` : `BAR_WIDTH` et `BAR_HEIGHT` règlent la taille des barres, `TRACK` la couleur de la piste.
-- `gauge.ts` : `PALETTES` et `HOT` contiennent les dégradés de chaque jauge. Les seuils et le format du reset sont aussi là.
-
-La mise en page compte en cases de caractères (environ 8 px). Si tu allonges les barres, vérifie que le bloc ne déborde pas.
-
-## Limites
-
-- Rendu prévu pour l'**app desktop** : les barres sont des `Svg`. Dans un terminal classique, le mod ne dessine rien.
-- Les fenêtres 5 h / 7 j n'apparaissent qu'avec un abonnement, et seulement après la première réponse de l'API.
-
-## Structure
+In a Claude Code terminal session:
 
 ```
-.claude-plugin/   plugin.json + marketplace.json
-hooks/            gauge.ts (logique pure) · register.tsx (affichage)
-types/            contrat d'état du mod
+/plugin install usage-bars --marketplace Nelahia/claude-mods
 ```
 
-## Licence
+Answer `y` to add the marketplace, then pick the `user` scope. The mod is active right away, and in every session started afterwards, including the desktop app.
 
-Usage personnel. Aucune licence n'est précisée pour l'instant.
+To browse every mod first: `/plugin marketplace add Nelahia/claude-mods`, then open `/plugin`.
+
+## Layout
+
+```
+.claude-plugin/marketplace.json   the catalog: one entry per mod
+mods/
+  <mod-name>/
+    .claude-plugin/plugin.json    manifest
+    hooks/                        hooks module (register.tsx) and helpers
+    types/                        state contract, when the mod keeps state
+    README.md                     what it does, options, limits
+```
+
+## Adding a mod
+
+1. Create `mods/<mod-name>/` with the layout above.
+2. Add an entry to `.claude-plugin/marketplace.json`: `{ "name": "<mod-name>", "source": "./mods/<mod-name>" }`.
+3. Check it with `claude plugin validate .`, then add a row to the table above.
+
+## License
+
+[MIT](LICENSE)
