@@ -17,18 +17,13 @@ export type RelayRun = {
   result?: string
 }
 
-export type RelaySummary = { text: string; turn: number }
-
 declare module 'claude-code' {
   interface PluginState {
     'context-relay': {
-      percent: number
-      limit: number | null
-      isHidden: boolean
+      tempDir: string | null
       isBusy: boolean
       steps: RelayStep[]
       run: RelayRun | null
-      summary: RelaySummary | null
     }
   }
 }

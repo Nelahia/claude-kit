@@ -2,50 +2,56 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { RelayRun, RelayStep } from '../types'
-import { PANE_WIDTH, paneHeight, paneSvg } from './pane-svg'
-import { registerRelayBar } from './relay-bar'
+import { registerRelayPanel } from './relay-panel'
 import { RELAY_FILE, RELAY_PROMPT, buildResume } from './relay-prompt'
+import { STEPS, safeName, secs } from './relay-steps'
 import { sendScript } from './send-script'
 
+// The handoff runs on demand: the panel and the "Open relay" button are the only entry points.
+// Helpers that receive `$` live in this entry file; the panel and the bar only draw.
 const PANE = 'context-relay'
-const percent = atom({ plugin: 'context-relay', key: 'percent' } as const, 0)
-const limit = atom({ plugin: 'context-relay', key: 'limit' } as const, null)
-const isHidden = atom({ plugin: 'context-relay', key: 'isHidden' } as const, false)
-const isBusy = atom({ plugin: 'context-relay', key: 'isBusy' } as const, false)
 const steps = atom({ plugin: 'context-relay', key: 'steps' } as const, [])
 const runState = atom({ plugin: 'context-relay', key: 'run' } as const, null)
-const summary = atom({ plugin: 'context-relay', key: 'summary' } as const, null)
+const isBusy = atom({ plugin: 'context-relay', key: 'isBusy' } as const, false)
+const tempDir = atom({ plugin: 'context-relay', key: 'tempDir' } as const, null)
 
-const STEPS: RelayStep[] = [
-  { id: 'read', label: 'Read this session', status: 'wait' },
-  { id: 'sum', label: 'Summarize the conversation', status: 'wait' },
-  { id: 'file', label: `Save ${RELAY_FILE}`, status: 'wait' },
-  { id: 'launch', label: 'Open a new session', status: 'wait' },
-  { id: 'send', label: 'Send the first message', status: 'wait' },
-]
-
-/** The threshold in force: the one chosen in this session, else the plugin option. */
-async function effective($: any, fallback: number): Promise<number> {
-  return (await read($, limit)) ?? fallback
+/** Temporary diagnostic: leaves a file in the temp folder each time a hook really runs in the app. */
+async function trace($: any, label: string): Promise<void> {
+  try {
+    await $.fs.write(`C:/Users/nelah/AppData/Local/Temp/relay-trace-${label}.txt`, `${await $.clock.now()}\n`)
+  } catch {
+    // A trace must never break the hook.
+  }
 }
 
-/** Applies a new threshold at once (the options are only read at load), keeps it, and re-arms the offer. */
-async function setLimit($: any, value: number): Promise<void> {
-  await update($, limit, () => value)
-  await update($, isHidden, () => false)
-  await $.config.set({ key: 'context-relay.threshold', value })
-  await $.ui.toast(`Relay will be offered at ${value}%`)
+/** Reads the OS temp folder (once per session; the handoff starts it before the summary). */
+async function warmTemp($: any): Promise<void> {
+  try {
+    const out = await $.process.run(['powershell', '-NoProfile', '-Command', '[IO.Path]::GetTempPath()'], { timeoutMs: 8000 })
+    const dir = String(out.stdout).trim().replace(/[\\/]+$/, '')
+    if (out.exitCode === 0 && dir !== '') await update($, tempDir, () => dir.replace(/\\/g, '/'))
+  } catch {
+    // The handoff falls back to the project folder and says so.
+  }
 }
 
-const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`
+/** Writes the handoff in the OS temp folder; says so in the step when it had to use the project. */
+async function saveHandoff($: any, cwd: string, handoff: string): Promise<{ file: string; note: string }> {
+  const dir = await read($, tempDir)
+  if (dir) {
+    const file = `${dir}/relais-${safeName(cwd)}.md`
+    try {
+      await $.fs.write(file, `${handoff}\n`)
 
-/** Prepares the summary right after a turn so the button does not wait for the model. */
-async function prepare($: any): Promise<void> {
-  const turn: number = await $.session.turns()
-  const current = await read($, summary)
-  if (current && current.turn === turn) return
-  const reply = await $.model.fork({ prompt: RELAY_PROMPT })
-  if (reply.isAnswered) await update($, summary, () => ({ text: reply.text.trim(), turn }))
+      return { file, note: '' }
+    } catch {
+      // Falls through to the project folder.
+    }
+  }
+  const file = `${cwd}/${RELAY_FILE}`
+  await $.fs.write(file, `${handoff}\n`)
+
+  return { file, note: ' (temp folder unavailable, saved in the project)' }
 }
 
 async function mark($: any, id: string, status: RelayStep['status'], detail?: string) {
@@ -54,13 +60,7 @@ async function mark($: any, id: string, status: RelayStep['status'], detail?: st
     list.map(s =>
       s.id !== id
         ? s
-        : {
-            ...s,
-            status,
-            detail,
-            startedAt: status === 'run' ? now : s.startedAt,
-            endedAt: status === 'run' ? undefined : now,
-          },
+        : { ...s, status, detail, startedAt: status === 'run' ? now : s.startedAt, endedAt: status === 'run' ? undefined : now },
     ),
   )
 }
@@ -91,48 +91,41 @@ async function relay($: any, withFolder: boolean): Promise<string> {
     await patchRun($, { cwd, model, percent: context.percent ?? 0 })
     await mark($, 'read', 'ok', 'Folder, model and context size')
 
+    // The temp folder lookup runs while the model writes the summary, so it costs no extra wait.
+    const warming = (await read($, tempDir)) ? Promise.resolve() : warmTemp($)
     await mark($, 'sum', 'run')
     const t0: number = await $.clock.now()
-    const cached = await read($, summary)
-    let handoff = ''
-    if (cached && cached.turn === (await $.session.turns())) {
-      handoff = cached.text
-      await mark($, 'sum', 'ok', 'Prepared in advance')
-    } else {
-      const reply = await $.model.fork({ prompt: RELAY_PROMPT })
-      if (!reply.isAnswered) {
-        await mark($, 'sum', 'fail', reply.reason)
-        return await finish($, false, `Could not summarize: ${reply.reason}`)
-      }
-      handoff = reply.text.trim()
-      await mark($, 'sum', 'ok', `Written by the model in ${secs((await $.clock.now()) - t0)}`)
+    const reply = await $.model.fork({ prompt: RELAY_PROMPT })
+    if (!reply.isAnswered) {
+      await mark($, 'sum', 'fail', reply.reason)
+      return await finish($, false, `Could not summarize: ${reply.reason}`)
     }
+    const handoff: string = reply.text.trim()
+    await mark($, 'sum', 'ok', `Written by the model in ${secs((await $.clock.now()) - t0)}`)
 
     await mark($, 'file', 'run')
-    await $.fs.write(`${cwd}/${RELAY_FILE}`, `${handoff}\n`)
-    await mark($, 'file', 'ok', `${cwd}/${RELAY_FILE}`)
+    await warming
+    const { file, note } = await saveHandoff($, cwd, handoff)
+    await mark($, 'file', 'ok', `${file}${note}`)
 
     await mark($, 'launch', 'run')
     const history: { role: string; text: string }[] = await $.session.messages()
-    const resume = buildResume(handoff, history, cwd)
+    const resume = buildResume(handoff, history, cwd, file)
     // The `folder` parameter makes the app ask to trust the folder, which slows the send.
     const folder = withFolder ? `folder=${encodeURIComponent(cwd.replace(/\//g, '\\'))}&` : ''
     const link = `claude://code/new?${folder}q=${encodeURIComponent(resume)}`
     await mark($, 'send', 'run')
     // The sender starts first so PowerShell's startup overlaps with the new session loading.
-    const sending = $.process.run(['powershell', '-NoProfile', '-Command', sendScript(`${cwd}/.relay-send.log`)], {
+    const sending = $.process.run(['powershell', '-NoProfile', '-Command', sendScript(`${file.replace(/\.md$/, '')}-send.log`)], {
       cwd,
       timeoutMs: 40000,
     })
-    const opened = await $.process.run(['rundll32.exe', 'url.dll,FileProtocolHandler', link], {
-      cwd,
-      timeoutMs: 15000,
-    })
+    const opened = await $.process.run(['rundll32.exe', 'url.dll,FileProtocolHandler', link], { cwd, timeoutMs: 15000 })
     if (opened.exitCode !== 0) {
       await mark($, 'launch', 'fail', `Windows error ${opened.exitCode}`)
       return await finish($, false, 'Windows could not open the Claude link.')
     }
-    await mark($, 'launch', 'ok', 'Handoff and last 2 messages in the prompt')
+    await mark($, 'launch', 'ok', 'Handoff and end of the chat in the prompt')
 
     const sent = (await sending).stdout.includes('sent')
     await mark($, 'send', sent ? 'ok' : 'fail', sent ? 'Message sent' : 'Claude did not take focus')
@@ -146,133 +139,45 @@ async function relay($: any, withFolder: boolean): Promise<string> {
 }
 
 export const register: Register = (on, options) => {
-  const fallback = Number(options.threshold ?? 60)
   const withFolder = options.openInFolder === true
 
-  registerRelayBar(on, PANE)
+  registerRelayPanel(on)
 
   on('session.start', async ($, e, next) => {
+    await trace($, 'session-start')
     await $.command.register({ name: 'context-relay', description: 'Hand this conversation to a new session' })
-    await $.command.register({ name: 'relay-threshold', description: 'Open the relay panel, or set the context % that offers it' })
-    // The panel is there from the start; its own close button hides it.
-    await $.ui.open({ id: PANE, title: 'Context relay' })
 
     return next(e)
   })
 
-  on('command.run', { command: 'context-relay' }, async $ => ({ text: await relay($, withFolder) }))
-
-  on('command.run', { command: 'relay-threshold' }, async ($, e) => {
-    const value = Number(e.args.trim())
-    if (e.args.trim() === '') {
-      await update($, runState, () => null)
-      await $.ui.open({ id: PANE, title: 'Context relay' })
-
-      return { text: `Relay panel opened. Offered at ${await effective($, fallback)}% of context.` }
+  on('command.run', { command: 'context-relay' }, async $ => {
+    await trace($, 'command-run')
+    try {
+      return { text: await relay($, withFolder) }
+    } catch (error) {
+      return { text: `Relay failed: ${String(error)}` }
     }
-    if (!Number.isFinite(value) || value < 1 || value > 99) return { text: 'Usage: /relay-threshold 60' }
-    // Offer again right away: show the panel now (setLimit rearms the once-per-crossing offer).
-    await update($, runState, () => null)
-    await $.ui.open({ id: PANE, title: 'Context relay' })
-    await setLimit($, value)
-
-    return { text: `Threshold set to ${value}%. The relay panel is open.` }
   })
 
-  on('turn.complete', async ($, e, next) => {
-    const { context } = await $.session.usage()
-    const pct = context.percent ?? 0
-    await update($, percent, () => pct)
-    if (pct < (await effective($, fallback))) {
-      await update($, isHidden, () => false)
-
-      return next(e)
-    }
-    void prepare($)
-    // Offer the handoff once each time the context crosses the threshold.
-    if (!(await read($, isHidden)) && !(await read($, isBusy))) {
-      await update($, isHidden, () => true)
-      await update($, runState, () => null)
-      await $.ui.open({ id: PANE, title: 'Context relay' })
-    }
-
-    return next(e)
-  })
-
-  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const ui = $.ui.resolve(e)
-    const list = await read($, steps)
-    const run = await read($, runState)
-    const current = (await $.session.usage()).context.percent ?? (await read($, percent))
-    const busy = await read($, isBusy)
-    const threshold = await effective($, fallback)
-    const { Box, Button, Text } = ui
-    const Svg = 'Svg' in ui ? ui.Svg : null
-    const Input = 'Input' in ui ? ui.Input : null
-
-    if (run === null) {
-      return (
-        <Box flexDirection="column" gap={1} padding={1}>
-          <Text bold>
-            Offered at {threshold}% · context {current}%
-          </Text>
-          <Box gap={1}>
-            <Button key="go" variant="primary" label="Hand off now" onPress={async () => $.ui.toast(await relay($, withFolder))} />
-            <Button key="later" label="Close" onPress={() => $.ui.close({ id: PANE })} />
-          </Box>
-          <Text dimColor>Offer at</Text>
-          <Box gap={1} flexWrap="wrap">
-            {[40, 50, 60, 70, 80].map(level => (
-              <Button
-                key={`level-${level}`}
-                label={`${level}%`}
-                variant={level === threshold ? 'primary' : 'secondary'}
-                onPress={() => setLimit($, level)}
-              />
-            ))}
-          </Box>
-          {Input ? (
-            <Box paddingBottom={1}>
-              <Input
-                key="custom"
-                label="Other %"
-                placeholder="1 to 99, Enter"
-                submitLabel="set"
-                onSubmit={value => {
-                  const n = Math.round(Number(value))
-                  if (n >= 1 && n <= 99) setLimit($, n)
-                  else $.ui.toast('Enter a number from 1 to 99')
-                }}
-              />
-            </Box>
-          ) : null}
-        </Box>
-      )
-    }
-
-    const icon = { wait: '○', run: '…', ok: '✓', fail: '✗' }
+  // The button starts the handoff itself, beside whatever else draws above the prompt (the usage bars).
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey || e.surface === 'terminal') return next(e)
+    const others = await next(e)
+    const { Box, Button } = $.ui.resolve(e)
 
     return (
       <Box flexDirection="column" gap={1}>
-        {Svg ? (
-          <Svg source={paneSvg(list, run)} alt="Handoff progress" width={PANE_WIDTH} height={paneHeight(list, run)} isInteractive />
-        ) : (
-          list.map(s => (
-            <Text key={s.id} dimColor={s.status === 'wait'}>
-              {icon[s.status]} {s.label} {s.detail ?? ''}
-            </Text>
-          ))
-        )}
-        {!busy && (
+        <Box paddingX={1}>
           <Button
-            key="close"
-            label="Close"
+            key="relay"
+            label="⤳  Relay"
             onPress={async () => {
-              await update($, runState, () => null)
-              await $.ui.close({ id: PANE })
+              await trace($, 'press')
+              $.ui.toast(await relay($, withFolder))
             }}
           />
-        )}
+        </Box>
+        {others}
       </Box>
     )
   })

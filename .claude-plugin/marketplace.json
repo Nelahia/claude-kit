@@ -13,7 +13,7 @@
     {
       "name": "context-relay",
       "source": "./mods/context-relay",
-      "description": "Hand a long conversation to a fresh session with a summary, from a side panel with a configurable threshold"
+      "description": "Hand a long conversation to a fresh session with a summary, from a Relay button above the prompt"
     },
     {
       "name": "session-handoff",

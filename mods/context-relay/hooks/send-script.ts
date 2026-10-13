@@ -1,6 +1,8 @@
 import { RESUME_MARK } from './relay-prompt'
 
 const A = 'System.Windows.Automation'
+// Inside a single-quoted PowerShell string, a quote is written twice.
+const quoted = (s: string) => s.replace(/'/g, "''")
 
 /**
  * PowerShell that focuses Claude, accepts the workspace-trust dialog if shown, finds the
@@ -9,7 +11,7 @@ const A = 'System.Windows.Automation'
  */
 export const sendScript = (log: string): string =>
   [
-    `$log = '${log}'; function L($m) { Add-Content $log ((Get-Date -Format o) + ' ' + $m) }`,
+    `$log = '${quoted(log)}'; function L($m) { Add-Content $log ((Get-Date -Format o) + ' ' + $m) }`,
     "L 'spawn'; Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes",
     "L 'start'; $s = New-Object -ComObject WScript.Shell; $done = $false",
     `$btn = [${A}.ControlType]::Button; $edit = [${A}.ControlType]::Edit`,

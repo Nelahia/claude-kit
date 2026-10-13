@@ -6,11 +6,11 @@ const PAD = 8
 const ROW = 64
 const PITCH = 74
 const TOP = 118
-export const ACCENT = '#6d5efc'
+const ACCENT = '#6d5efc'
 const GREEN = '#17b26a'
 const RED = '#f04438'
 
-export const CSS =
+const CSS =
   '.card{fill:#f5f6f9;stroke:#e2e5ec}.ink{fill:#14141a}.mute{fill:#6b6f7a}.track{fill:#dcdfe6}' +
   '.ring{fill:none;stroke:#c4c8d2}' +
   '@media (prefers-color-scheme:dark){.card{fill:#1e1e23;stroke:#2c2c34}.ink{fill:#f3f3f6}' +

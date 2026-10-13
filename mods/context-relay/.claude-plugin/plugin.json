@@ -1,20 +1,12 @@
 {
   "name": "context-relay",
   "version": "0.1.0",
-  "description": "Above a context threshold, a button summarizes the conversation (goal, shipped, up next, locked in) into relais.md and offers to continue in a new session.",
+  "description": "A side panel and an Open relay button that summarize the conversation and continue it in a fresh session, when you choose.",
   "author": {
     "name": "LAHIANY Neal"
   },
   "types": "./types/index.d.ts",
   "userConfig": {
-    "threshold": {
-      "type": "number",
-      "title": "Context threshold (%)",
-      "description": "The context-relay button appears when context reaches this percentage.",
-      "default": 60,
-      "min": 1,
-      "max": 99
-    },
     "openInFolder": {
       "type": "boolean",
       "title": "Open the new session in this folder",
