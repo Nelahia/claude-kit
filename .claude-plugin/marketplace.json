@@ -7,6 +7,11 @@
       "name": "usage-bars",
       "source": "./mods/usage-bars",
       "description": "Rounded gradient bars for context, 5h and 7d usage, plus session spend"
+    },
+    {
+      "name": "session-handoff",
+      "source": "./skills/session-handoff",
+      "description": "Export the session's technical context to handoff.md for the next session"
     }
   ]
 }

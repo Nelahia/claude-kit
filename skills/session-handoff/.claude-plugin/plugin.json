@@ -1,0 +1,7 @@
+{
+  "name": "session-handoff",
+  "version": "0.1.0",
+  "description": "Export the current session's technical context to a handoff.md so a fresh session can pick up the work",
+  "author": { "name": "Nelahia" },
+  "license": "MIT"
+}

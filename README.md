@@ -1,12 +1,13 @@
 # claude-kit
 
-A small kit for [Claude Code](https://claude.com/claude-code): mods today, skills next, all installable from one marketplace.
+A small kit for [Claude Code](https://claude.com/claude-code): mods and skills, installable from one marketplace.
 
-## Mods
+## Mods and skills
 
-| Mod | What it does | Preview |
+| Name | What it does | Preview |
 | --- | --- | --- |
 | [`usage-bars`](mods/usage-bars) | Rounded gradient bars for context, 5h and 7d usage, plus session spend, above the prompt. | <img src="mods/usage-bars/docs/screenshot.png" width="360" alt="usage-bars"> |
+| [`session-handoff`](skills/session-handoff) | Skill: writes the session context to `handoff.md` so a new session can resume. | - |
 
 ## Install
 
@@ -23,19 +24,24 @@ To browse every mod first: `/plugin marketplace add Nelahia/claude-kit`, then op
 ## Layout
 
 ```
-.claude-plugin/marketplace.json   the catalog: one entry per mod
+.claude-plugin/marketplace.json   the catalog: one entry per mod or skill
 mods/
   <mod-name>/
     .claude-plugin/plugin.json    manifest
     hooks/                        hooks module (register.tsx) and helpers
     types/                        state contract, when the mod keeps state
     README.md                     what it does, options, limits
+skills/
+  <skill-name>/
+    .claude-plugin/plugin.json    manifest
+    skills/<skill-name>/SKILL.md  the skill itself
+    README.md
 ```
 
-## Adding a mod
+## Adding a mod or a skill
 
-1. Create `mods/<mod-name>/` with the layout above.
-2. Add an entry to `.claude-plugin/marketplace.json`: `{ "name": "<mod-name>", "source": "./mods/<mod-name>" }`.
+1. Create `mods/<name>/` or `skills/<name>/` with the layout above.
+2. Add an entry to `.claude-plugin/marketplace.json`: `{ "name": "<name>", "source": "./mods/<name>" }` (or `./skills/<name>`).
 3. Check it with `claude plugin validate .`, then add a row to the table above.
 
 ## License
