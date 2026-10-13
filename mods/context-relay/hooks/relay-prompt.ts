@@ -1,4 +1,4 @@
-import { redact } from './redact'
+import { redact } from './relay-redact'
 
 export const RELAY_FILE = 'relais.md'
 export const RESUME_MARK = 'You are continuing a previous session'
@@ -57,7 +57,7 @@ export const buildResume = (
     [
       `${RESUME_MARK}. Previous working folder: ${cwd}. The full handoff is also saved at ${file}.`,
       head(redact(handoff), summaryMax),
-      tailMax > 0
+      tailMax > 0 && messages.length > 0
         ? `End of the previous conversation:\n\n${messages.map(m => `[${m.role}] ${tailOf(flat(redact(m.text)), tailMax)}`).join('\n\n')}`
         : '',
       'Summarize Goal and Up next in two lines, then continue from Up next.',

@@ -7,6 +7,7 @@ A small kit for [Claude Code](https://claude.com/claude-code): mods and skills, 
 | Name | What it does | Preview |
 | --- | --- | --- |
 | [`usage-bars`](mods/usage-bars) | Rounded gradient bars for context, 5h and 7d usage, plus session spend, above the prompt. | <img src="mods/usage-bars/docs/screenshot.png" width="360" alt="usage-bars"> |
+| [`context-relay`](mods/context-relay) | A Relay button that summarizes the conversation and continues it in a fresh session, first message included. | - |
 | [`session-handoff`](skills/session-handoff) | Skill: writes the session context to `handoff.md` so a new session can resume. | - |
 
 ## Install

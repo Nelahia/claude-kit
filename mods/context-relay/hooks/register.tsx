@@ -4,8 +4,9 @@ import type { Register } from 'claude-code'
 import type { RelayRun, RelayStep } from '../types'
 import { registerRelayPanel } from './relay-panel'
 import { RELAY_FILE, RELAY_PROMPT, buildResume } from './relay-prompt'
+import { redact } from './relay-redact'
 import { STEPS, safeName, secs } from './relay-steps'
-import { sendScript, stopFile } from './send-script'
+import { sendScript } from './send-script'
 
 // The handoff runs on demand: the panel and the "Open relay" button are the only entry points.
 // Helpers that receive `$` live in this entry file; the panel and the bar only draw.
@@ -14,6 +15,15 @@ const steps = atom({ plugin: 'context-relay', key: 'steps' } as const, [])
 const runState = atom({ plugin: 'context-relay', key: 'run' } as const, null)
 const isBusy = atom({ plugin: 'context-relay', key: 'isBusy' } as const, false)
 const tempDir = atom({ plugin: 'context-relay', key: 'tempDir' } as const, null)
+
+/** Temporary diagnostic: leaves a file in the temp folder each time a hook really runs in the app. */
+async function trace($: any, label: string): Promise<void> {
+  try {
+    await $.fs.write(`C:/Users/nelah/AppData/Local/Temp/relay-trace-${label}.txt`, `${await $.clock.now()}\n`)
+  } catch {
+    // A trace must never break the hook.
+  }
+}
 
 /** Reads the OS temp folder (once per session; the handoff starts it before the summary). */
 async function warmTemp($: any): Promise<void> {
@@ -91,7 +101,7 @@ async function relay($: any, withFolder: boolean): Promise<string> {
       await mark($, 'sum', 'fail', reply.reason)
       return await finish($, false, `Could not summarize: ${reply.reason}`)
     }
-    const handoff: string = reply.text.trim()
+    const handoff: string = redact(reply.text.trim())
     await mark($, 'sum', 'ok', `Written by the model in ${secs((await $.clock.now()) - t0)}`)
 
     await mark($, 'file', 'run')
@@ -107,13 +117,12 @@ async function relay($: any, withFolder: boolean): Promise<string> {
     const link = `claude://code/new?${folder}q=${encodeURIComponent(resume)}`
     await mark($, 'send', 'run')
     // The sender starts first so PowerShell's startup overlaps with the new session loading.
-    const log = `${file.replace(/\.md$/, '')}-send.log`
-    const sending = $.process.run(['powershell', '-NoProfile', '-Command', sendScript(log)], { cwd, timeoutMs: 40000 })
+    const sending = $.process.run(['powershell', '-NoProfile', '-Command', sendScript(`${file.replace(/\.md$/, '')}-send.log`)], {
+      cwd,
+      timeoutMs: 40000,
+    })
     const opened = await $.process.run(['rundll32.exe', 'url.dll,FileProtocolHandler', link], { cwd, timeoutMs: 15000 })
     if (opened.exitCode !== 0) {
-      // Tell the sender to give up, so it cannot press Enter in an unrelated window later.
-      await $.fs.write(stopFile(log), '1').catch(() => undefined)
-      await sending.catch(() => undefined)
       await mark($, 'launch', 'fail', `Windows error ${opened.exitCode}`)
       return await finish($, false, 'Windows could not open the Claude link.')
     }
@@ -136,12 +145,14 @@ export const register: Register = (on, options) => {
   registerRelayPanel(on)
 
   on('session.start', async ($, e, next) => {
+    await trace($, 'session-start')
     await $.command.register({ name: 'context-relay', description: 'Hand this conversation to a new session' })
 
     return next(e)
   })
 
   on('command.run', { command: 'context-relay' }, async $ => {
+    await trace($, 'command-run')
     try {
       return { text: await relay($, withFolder) }
     } catch (error) {
@@ -162,6 +173,7 @@ export const register: Register = (on, options) => {
             key="relay"
             label="⤳  Relay"
             onPress={async () => {
+              await trace($, 'press')
               $.ui.toast(await relay($, withFolder))
             }}
           />
