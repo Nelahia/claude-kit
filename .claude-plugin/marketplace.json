@@ -1,12 +1,19 @@
 {
   "name": "nelahia-kit",
-  "owner": { "name": "Nelahia" },
+  "owner": {
+    "name": "Nelahia"
+  },
   "description": "Claude Code mods and skills by Nelahia",
   "plugins": [
     {
       "name": "usage-bars",
       "source": "./mods/usage-bars",
       "description": "Rounded gradient bars for context, 5h and 7d usage, plus session spend"
+    },
+    {
+      "name": "context-relay",
+      "source": "./mods/context-relay",
+      "description": "Hand a long conversation to a fresh session with a summary, from a side panel with a configurable threshold"
     },
     {
       "name": "session-handoff",
