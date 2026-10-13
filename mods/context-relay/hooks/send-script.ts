@@ -4,6 +4,9 @@ const A = 'System.Windows.Automation'
 // Inside a single-quoted PowerShell string, a quote is written twice.
 const quoted = (s: string) => s.replace(/'/g, "''")
 
+/** The file whose presence tells a running sender to give up (the link could not be opened). */
+export const stopFile = (log: string): string => `${log}.stop`
+
 /**
  * PowerShell that focuses Claude, accepts the workspace-trust dialog if shown, finds the
  * prompt box through UI Automation, waits for the prefilled handoff, then presses Enter.
@@ -17,7 +20,9 @@ export const sendScript = (log: string): string =>
     `$btn = [${A}.ControlType]::Button; $edit = [${A}.ControlType]::Edit`,
     `$pid2 = [${A}.AutomationElement]::ProcessIdProperty; $typ = [${A}.AutomationElement]::ControlTypeProperty`,
     "$id = (Get-Process claude | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -First 1).Id",
+    `$stop = '${quoted(stopFile(log))}'`,
     'foreach ($i in 1..40) {',
+    "if (Test-Path $stop) { L 'stopped'; Remove-Item $stop; break }",
     "[void]$s.AppActivate('Claude')",
     `$w = [${A}.AutomationElement]::RootElement.FindFirst('Children', (New-Object ${A}.PropertyCondition($pid2, $id)))`,
     `if ($w) { foreach ($b in $w.FindAll('Descendants', (New-Object ${A}.PropertyCondition($typ, $btn)))) {`,
