@@ -10,8 +10,8 @@
     "openInFolder": {
       "type": "boolean",
       "title": "Open the new session in this folder",
-      "description": "Gives the new session the project folder, but the app then asks to trust it and the first message is slower. Off: the new session opens like any other.",
-      "default": false
+      "description": "Gives the new session the project folder. The app may ask to trust it, which makes the first message slower. Off: the new session opens in the app's default folder, not necessarily this project.",
+      "default": true
     }
   }
 }

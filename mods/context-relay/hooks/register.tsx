@@ -140,7 +140,7 @@ async function relay($: any, withFolder: boolean): Promise<string> {
 }
 
 export const register: Register = (on, options) => {
-  const withFolder = options.openInFolder === true
+  const withFolder = options.openInFolder !== false
 
   registerRelayPanel(on)
 

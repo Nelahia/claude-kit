@@ -68,7 +68,7 @@ A side panel shows each step while it runs, and the time it took.
 
 ## Option
 
-- `openInFolder` (default false): open the new session in the same folder (the app asks to trust it, so it is slower).
+- `openInFolder` (default true): open the new session in the same folder as the current one. The app may ask to trust the folder, which slows the first message. Set it to false and the new session opens in the app's default folder instead.
 
 ## Limits
 
