@@ -101,3 +101,24 @@ describe('secrets in the summary and in the last messages', () => {
     expect(text).not.toContain(SECRETS[7])
   })
 })
+
+describe('buildResume tail and links', () => {
+  test('skips thanks-only messages and keeps the last two real ones', () => {
+    const history = [
+      { role: 'user', text: 'please add the FAQ page' },
+      { role: 'assistant', text: 'Done, want a JSON-LD block too?' },
+      { role: 'user', text: 'good merci' },
+      { role: 'assistant', text: 'Thanks!' },
+    ]
+    const out = buildResume('# Handoff\n\n## Goal\nx', history, 'C:/p', FILE)
+    expect(out).toContain('[user] please add the FAQ page')
+    expect(out).toContain('[assistant] Done, want a JSON-LD block too?')
+    expect(out).not.toContain('good merci')
+  })
+
+  test('shortens markdown links in the handoff', () => {
+    const out = buildResume('# Handoff\n\nFix: [index.html](index.html)', [], 'C:/p', FILE)
+    expect(out).toContain('Fix: index.html')
+    expect(out).not.toContain('](')
+  })
+})

@@ -1,4 +1,5 @@
 import { redact } from './relay-redact'
+import { isSmallTalk, unlink } from './relay-text'
 
 export const RELAY_FILE = 'relais.md'
 export const RESUME_MARK = 'You are continuing a previous session'
@@ -34,6 +35,9 @@ Rules:
 - Keep the whole answer under 2500 characters.
 - Do not copy what already lives in a spec, plan, issue, commit or diff: point to it by path or URL instead.
 - Never include secrets or personal data (passwords, tokens, API keys, emails, phone numbers, addresses). Write "[redacted]" if one is needed to make sense.
+- Describe the current state, not the conversation: never write "the user said" or "the assistant did".
+- In Locked in, keep only decisions specific to this task; leave general repo conventions (commit style, push rules) to the project CLAUDE.md.
+- Use plain paths and commit hashes, no markdown links.
 - Be concise and factual. Invent nothing.`
 
 const flat = (t: string) => t.replace(/\s+/g, ' ').trim()
@@ -52,11 +56,11 @@ export const buildResume = (
   cwd: string,
   file: string,
 ): string => {
-  const messages = history.filter(m => m.text && m.text.trim() !== '').slice(-TAIL_MESSAGES)
+  const messages = history.filter(m => m.text && m.text.trim() !== '' && !isSmallTalk(m.text)).slice(-TAIL_MESSAGES)
   const compose = (summaryMax: number, tailMax: number): string =>
     [
       `${RESUME_MARK}. Previous working folder: ${cwd}. The full handoff is also saved at ${file}.`,
-      head(redact(handoff), summaryMax),
+      head(unlink(redact(handoff)), summaryMax),
       tailMax > 0 && messages.length > 0
         ? `End of the previous conversation:\n\n${messages.map(m => `[${m.role}] ${tailOf(flat(redact(m.text)), tailMax)}`).join('\n\n')}`
         : '',
