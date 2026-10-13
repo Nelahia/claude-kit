@@ -2,9 +2,7 @@
 
 Des barres de progression arrondies, sobres et en dégradé, au-dessus du prompt de **Claude Code Desktop** : contexte, fenêtre de 5 h, fenêtre de 7 jours, et la dépense de la session.
 
-```
-context ━━━━━━━━━━━━━━ 21%    5h ━━━━━━━━━━ 13% ↻4h04    7d ━━━━━━━━━ 44% ↻4j    spent $1.84
-```
+![usage-bars au-dessus du prompt de Claude Code Desktop](docs/screenshot.png)
 
 ## Installation
 
