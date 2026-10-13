@@ -2,6 +2,23 @@
 
 Hands a long conversation over to a fresh Claude Desktop session, in one click, when you choose.
 
+## Install
+
+In a Claude Code session:
+
+```
+/plugin install context-relay --marketplace Nelahia/claude-kit
+```
+
+Answer `y` to add the marketplace, then pick the `user` scope. Or from a terminal:
+
+```
+claude plugin marketplace add Nelahia/claude-kit
+claude plugin install context-relay@nelahia-kit
+```
+
+Mods load when a conversation starts, so **open a new conversation** to see the **Relay** button above the prompt. Windows and the Claude Desktop app are required.
+
 <img src="docs/demo.gif" width="720" alt="Demo: click Relay, the five steps run, a new session opens with the summary and sends the first message">
 
 <img src="docs/button.png" width="520" alt="The Relay button above the prompt, beside the usage bars">
