@@ -1,0 +1,5 @@
+{
+  "name": "nelahia-mods",
+  "owner": { "name": "Nelahia" },
+  "plugins": [{ "name": "usage-bars", "source": "./" }]
+}

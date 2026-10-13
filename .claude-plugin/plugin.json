@@ -1,0 +1,1 @@
+{ "name": "usage-bars", "version": "0.1.0", "description": "Barres de progression contexte / 5h / 7j au-dessus du prompt", "types": "./types/index.d.ts" }
