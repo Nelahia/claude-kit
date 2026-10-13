@@ -1,7 +1,7 @@
 {
-  "name": "nelahia-mods",
+  "name": "nelahia-kit",
   "owner": { "name": "Nelahia" },
-  "description": "Claude Code mods by Nelahia",
+  "description": "Claude Code mods and skills by Nelahia",
   "plugins": [
     {
       "name": "usage-bars",

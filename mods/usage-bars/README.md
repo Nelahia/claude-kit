@@ -9,7 +9,7 @@ Rounded, muted gradient progress bars above the prompt of **Claude Code Desktop*
 In a Claude Code terminal session:
 
 ```
-/plugin install usage-bars --marketplace Nelahia/claude-mods
+/plugin install usage-bars --marketplace Nelahia/claude-kit
 ```
 
 Answer `y` to add the marketplace, then pick the `user` scope. The mod is active right away, and in every session started afterwards, including the desktop app.

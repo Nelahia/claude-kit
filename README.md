@@ -1,6 +1,6 @@
-# claude-mods
+# claude-kit
 
-A small collection of [Claude Code](https://claude.com/claude-code) mods, installable from one marketplace.
+A small kit for [Claude Code](https://claude.com/claude-code): mods today, skills next, all installable from one marketplace.
 
 ## Mods
 
@@ -13,12 +13,12 @@ A small collection of [Claude Code](https://claude.com/claude-code) mods, instal
 In a Claude Code terminal session:
 
 ```
-/plugin install usage-bars --marketplace Nelahia/claude-mods
+/plugin install usage-bars --marketplace Nelahia/claude-kit
 ```
 
 Answer `y` to add the marketplace, then pick the `user` scope. The mod is active right away, and in every session started afterwards, including the desktop app.
 
-To browse every mod first: `/plugin marketplace add Nelahia/claude-mods`, then open `/plugin`.
+To browse every mod first: `/plugin marketplace add Nelahia/claude-kit`, then open `/plugin`.
 
 ## Layout
 
